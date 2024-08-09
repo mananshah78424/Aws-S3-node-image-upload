@@ -9,7 +9,7 @@ export default function NewPost() {
     const formData = new FormData();
     formData.append("image", file);
     formData.append("caption", caption);
-    await axios.post("/api/posts", formData, {
+    await axios.post("http://localhost:8080/api/posts", formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
   };
