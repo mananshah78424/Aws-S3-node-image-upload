@@ -39,15 +39,10 @@ const s3 = new S3Client({
 });
 
 app.get("/api/posts", async (req, res) => {
-  const posts = await prisma.posts.findMany({ orderBy: { created: "desc" } });
+  const posts = await prisma.post.findMany({ orderBy: { created: "desc" } });
+
   for (const post of posts) {
-    const getObjectParams = {
-      Bucket: bucketName,
-      Key: post.imageName,
-    };
-    const command = new GetObjectCommand(getObjectParams);
-    const url = await getSignedUrl(s3, command, { expiresIn: 3600 });
-    post.imageUrl = url;
+    post.imageUrl = "https://d3st0nkyboghj9.cloudfront.net/" + post.imageName;
   }
   res.send(posts);
 });
@@ -57,9 +52,8 @@ app.post("/api/posts", upload.single("image"), async (req, res) => {
     console.log(req.body);
     const file = req.file;
     const caption = req.body.caption;
-    const fileBuffer = await sharp(file.buffer)
-      .resize({ height: 1920, width: 1080, fit: "contain" })
-      .toBuffer();
+    const fileBuffer = file.buffer;
+
     const imageName = generateFileName();
     const params = {
       Bucket: bucketName,
@@ -71,7 +65,7 @@ app.post("/api/posts", upload.single("image"), async (req, res) => {
     const command = new PutObjectCommand(params);
     await s3.send(command);
 
-    const post = await prisma.posts.create({
+    const post = await prisma.post.create({
       data: {
         imageName,
         caption,
@@ -92,13 +86,147 @@ function deleteFile(fileName) {
   return s3.send(new DeleteObjectCommand(deleteParams));
 }
 app.delete("/api/posts/:id", async (req, res) => {
-  const id = +req.params.id;
-  console.log(id);
-  const post = await prisma.posts.findUnique({ where: { id } });
+  const id = parseInt(req.params.id, 10);
 
-  await deleteFile(post.imageName);
-  await prisma.posts.delete({ where: { id: post.id } });
-  res.send(post);
+  if (isNaN(id)) {
+    return res.status(400).json({ error: "Invalid post ID" });
+  }
+
+  try {
+    // Find the post
+    const post = await prisma.post.findUnique({ where: { id } });
+
+    if (!post) {
+      return res.status(404).json({ error: "Post not found" });
+    }
+
+    // Delete associated comments
+    await prisma.comment.deleteMany({ where: { postId: id } });
+
+    // Delete the post image from S3
+    await deleteFile(post.imageName);
+
+    // Delete the post
+    await prisma.post.delete({ where: { id } });
+
+    res.status(200).json(post);
+  } catch (error) {
+    console.error("Error deleting post:", error);
+    res.status(500).json({ error: "Failed to delete post" });
+  }
+});
+
+// Fetch comments for a specific post
+app.get("/api/posts/:id/comments", async (req, res) => {
+  const postId = parseInt(req.params.id, 10);
+
+  try {
+    const comments = await prisma.comment.findMany({
+      where: { postId: postId },
+      orderBy: { createdAt: "desc" }, // Order comments by creation date
+    });
+    res.status(200).send(comments);
+  } catch (error) {
+    console.error("Error fetching comments: ", error);
+    res.status(500).json({ error: "Failed to fetch comments" });
+  }
+});
+
+app.post("/api/posts/:id/comments", async (req, res) => {
+  const postId = parseInt(req.params.id, 10); // Ensure postId is an integer
+  const { content } = req.body; // Make sure content is extracted from the body
+
+  if (!content || !postId) {
+    return res.status(400).json({ error: "Content and postId are required" });
+  }
+
+  try {
+    const comment = await prisma.comment.create({
+      data: {
+        postId: postId,
+        content: content, // Correctly use the content field
+      },
+    });
+    res.status(201).json(comment);
+  } catch (error) {
+    console.error("Error adding comment:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.put("/api/posts/:id/incrementComments", async (req, res) => {
+  const postId = parseInt(req.params.id, 10);
+
+  if (isNaN(postId)) {
+    return res.status(400).json({ error: "Invalid post ID" });
+  }
+
+  try {
+    // Update the totalComments field by incrementing it by 1
+    const updatedPost = await prisma.post.update({
+      where: { id: postId },
+      data: {
+        totalComments: {
+          increment: 1,
+        },
+      },
+    });
+
+    res.status(200).send(updatedPost);
+  } catch (error) {
+    console.error("Error incrementing totalComments:", error);
+    res.status(500).json({ error: "Failed to increment totalComments" });
+  }
+});
+
+app.post("/api/posts/:id/like", async (req, res) => {
+  const { id } = req.params;
+  console.log("Like id:", id);
+  try {
+    // Increment the like count in the `Like` table
+    await prisma.like.create({
+      data: {
+        postId: parseInt(id),
+      },
+    });
+
+    // Increment the totalLikes in the `Post` table
+    const post = await prisma.post.update({
+      where: { id: parseInt(id) },
+      data: {
+        totalLikes: {
+          increment: 1,
+        },
+      },
+    });
+
+    res.status(200).send(post);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "An error occurred while liking the post" });
+  }
+});
+
+// Route to get post details
+app.get("/api/posts/:id/like", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const post = await prisma.post.findUnique({
+      where: { id: parseInt(id) },
+    });
+
+    if (!post) {
+      return res.status(404).json({ error: "Post not found" });
+    }
+
+    res.status(200).json(post);
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .json({ error: "An error occurred while fetching the post" });
+  }
 });
 
 app.listen(8080, () => console.log("listening on port 8080"));

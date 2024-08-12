@@ -13,12 +13,32 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
-model Posts {
-  id            Int      @id @default(autoincrement())
+model Post {
+  id            Int       @id @default(autoincrement())
   imageName     String
   caption       String
-  totalComments Int      @default(0)
-  totalLikes    Int      @default(0)
-  created       DateTime @default(now())
+  totalComments Int       @default(0)
+  totalLikes    Int       @default(0)
+  created       DateTime  @default(now())
+  comments      Comment[] @relation("PostComments")
+  likes         Like[]    @relation("PostLikes")
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  content   String
+  createdAt DateTime @default(now())
+  postId    Int
+  post      Post     @relation("PostComments", fields: [postId], references: [id])
+
+  @@index([postId])
+}
+
+model Like {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  postId    Int
+  post      Post     @relation("PostLikes", fields: [postId], references: [id])
+
+  @@index([postId])
 }
