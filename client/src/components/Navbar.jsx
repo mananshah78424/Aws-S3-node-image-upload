@@ -30,7 +30,7 @@ const Navbar = () => {
       >
         <div className="lg:mb-8">
           <span className="self-center text-2xl font-semibold whitespace-nowrap dark:text-white font-proxima italic ml-6">
-            InstaS3Sync
+            InstaS3Verse
           </span>
         </div>
         <SidebarIcon
