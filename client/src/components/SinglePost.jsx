@@ -50,6 +50,7 @@ export default function SinglePost({
   const [comment, setComment] = useState("");
   const [showAllComments, setShowAllComments] = useState(false);
   const [postDetails, setPostDetails] = useState(post);
+  const [likes, setLikes] = useState(0);
 
   useEffect(() => {
     async function fetchComments() {
@@ -77,6 +78,28 @@ export default function SinglePost({
     setComment(event.target.value);
   };
 
+  const updateLike = async (event) => {
+    console.log("Clicked update like");
+    try {
+      // Call the API to like the post
+      const response = await axios.post(
+        `http://localhost:8080/api/posts/${id}/like`
+      );
+
+      setPostDetails((prevPost) => ({
+        ...prevPost,
+        totalLikes: prevPost.totalLikes + 1,
+      }));
+
+      // Optionally, refetch likes after submitting
+      const result = await axios.get(
+        `http://localhost:8080/api/posts/${id}/like`
+      );
+      setLikes(response.data.totalLikes);
+    } catch (error) {
+      console.error("Error liking the post:", error);
+    }
+  };
   const handleCommentSubmit = async (event) => {
     event.preventDefault();
     if (comment.trim()) {
@@ -126,8 +149,9 @@ export default function SinglePost({
         <div className="icon">
           <HeartOutline
             className="h-7 w-7 text-gray-700 cursor-pointer hover:text-red-500"
-            onClick={() => likeClicked({ id })}
+            onClick={() => updateLike({ id })}
           />
+          {likes}
         </div>
         <div class="w-full ml-4">
           <div class="flex items-center text-white font-medium">
@@ -182,7 +206,7 @@ export default function SinglePost({
         <div className="flex items-center space-x-5 mb-2">
           <HeartOutline
             className="h-7 w-7 text-gray-700 cursor-pointer hover:text-red-500"
-            onClick={() => likeClicked({ id })}
+            onClick={() => updateLike({ id })}
           />
           <ChatIcon
             className="h-7 w-7 text-gray-700 cursor-pointer hover:text-gray-900"

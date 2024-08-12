@@ -51,12 +51,9 @@ export default function App() {
   };
 
   return (
-    <div className="flex">
+    <div className="flex flex-col lg:flex-row">
       <Navbar />
       <div className="flex-1 min-h-screen flex flex-col items-center w-full mt-6">
-        <p className="text-white">
-          Upload an image, and the image will be uploaded to AWS S3 bucket.
-        </p>
         <div className="flex flex-col space-y-6 px-4 py-8">
           {posts.map((post) => (
             <div

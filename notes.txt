@@ -1,0 +1,42 @@
+SHORTCUTS
+
+Connect to postgre: psql -h localhost -U manan -d mydb 
+Create User: CREATE USER manan WITH PASSWORD 'password';
+Grant permissions:
+    GRANT CONNECT ON DATABASE mydb TO manan;
+    GRANT USAGE ON SCHEMA public TO manan;
+    GRANT CREATE ON SCHEMA public TO manan;
+    GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO manan;
+    GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO manan;
+
+Get out of psql: \q
+
+FormData
+For images, we need form data. 
+
+Multer
+Multer helps in attatching files to our request sent. 
+
+Prisma
+Prisma is an open-source ORM (Object-Relational Mapping) tool that simplifies database interactions in your application. It provides an abstraction layer between your application code and the database, allowing you to work with your database using a more intuitive and type-safe API. Prisma consists of:
+
+Prisma Client: An auto-generated and type-safe query builder for your database.
+Prisma Migrate: A tool for managing schema migrations.
+Prisma Studio: A GUI for interacting with your database.
+
+npx prisma db push: This command applies the Prisma schema to your database. It creates or updates tables in the database to match the schema you defined in schema.prisma.
+
+
+
+Implemented AWS CloudFront CDN, improving global content delivery times by up to 98% and achieving sub-10ms response times in key regions.
+
+
+
+
+TO RUN
+
+CLIENT - 
+npm run start
+
+EXPRESS - 
+npm run dev

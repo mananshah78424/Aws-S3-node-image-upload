@@ -1,5 +1,6 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
+
 export default function NewsBar() {
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -13,7 +14,6 @@ export default function NewsBar() {
 
         setArticles(response.data.articles);
         setLoading(false);
-        console.log(response);
       } catch (error) {
         console.log("Error fetching newsbar: ", error);
         setLoading(false);
@@ -23,7 +23,6 @@ export default function NewsBar() {
     // Check if it's time to fetch news
     const checkFetchTime = () => {
       const lastFetch = localStorage.getItem("lastFetch");
-      console.log(lastFetch);
       const now = new Date();
       const nextFetchTime = new Date();
 
@@ -52,10 +51,12 @@ export default function NewsBar() {
   if (loading) return <div>Loading...</div>;
 
   return (
-    <div className="p-4 space-y-4 text-white pr-10" style={{ width: "30%" }}>
+    <div className="p-4 space-y-4 text-white lg:pr-10 mx-auto lg:mx-0 lg:w-1/3 w-full max-h-screen overflow-y-auto">
       {/* Trending Header */}
       <div className="border-b border-gray-700 pb-2 mt-8">
-        <h1 className="text-lg font-bold">What is happening Now</h1>
+        <h1 className="text-lg font-bold">
+          What is happening Now - Live News Feed
+        </h1>
       </div>
 
       {/* Trend Items */}
