@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,6 +7,18 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id        Int       @id @default(autoincrement())
+  email     String    @unique
+  password  String
+  name      String
+  posts     Post[]    @relation("UserPosts")
+  comments  Comment[] @relation("UserComments")
+  likes     Like[]    @relation("UserLikes")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
 model Post {
   id            Int       @id @default(autoincrement())
   imageName     String
@@ -20,8 +26,12 @@ model Post {
   totalComments Int       @default(0)
   totalLikes    Int       @default(0)
   created       DateTime  @default(now())
+  userId        Int
+  user          User      @relation("UserPosts", fields: [userId], references: [id])
   comments      Comment[] @relation("PostComments")
   likes         Like[]    @relation("PostLikes")
+
+  @@index([userId])
 }
 
 model Comment {
@@ -30,8 +40,11 @@ model Comment {
   createdAt DateTime @default(now())
   postId    Int
   post      Post     @relation("PostComments", fields: [postId], references: [id])
+  userId    Int
+  user      User     @relation("UserComments", fields: [userId], references: [id])
 
   @@index([postId])
+  @@index([userId])
 }
 
 model Like {
@@ -39,6 +52,9 @@ model Like {
   createdAt DateTime @default(now())
   postId    Int
   post      Post     @relation("PostLikes", fields: [postId], references: [id])
+  userId    Int
+  user      User     @relation("UserLikes", fields: [userId], references: [id])
 
   @@index([postId])
+  @@index([userId])
 }

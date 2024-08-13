@@ -1,7 +1,11 @@
 const { uploadFile, deleteFile } = require("./config/awsConfig");
+const auth = require("./middleware/auth");
 const express = require("express");
 const cors = require("cors");
 const multer = require("multer");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+
 // const {
 //   S3Client,
 //   PutObjectCommand,
@@ -14,6 +18,7 @@ const dotenv = require("dotenv");
 const crypto = require("crypto");
 const sharp = require("sharp");
 const { PrismaClient } = require("@prisma/client");
+const { log } = require("console");
 dotenv.config();
 
 const app = express();
@@ -38,39 +43,61 @@ const prisma = new PrismaClient();
 // });
 
 app.get("/api/posts", async (req, res) => {
-  const posts = await prisma.post.findMany({ orderBy: { created: "desc" } });
-  for (const post of posts) {
-    post.imageUrl = "https://d3st0nkyboghj9.cloudfront.net/" + post.imageName;
+  try {
+    const posts = await prisma.post.findMany({
+      orderBy: { created: "desc" },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            // Any other user fields you need
+          },
+        },
+      },
+    });
+
+    // Add the imageUrl field to each post
+    const postsWithImageUrl = posts.map((post) => ({
+      ...post,
+      imageUrl: `https://d3st0nkyboghj9.cloudfront.net/${post.imageName}`,
+    }));
+
+    // console.log("Posts are", postsWithImageUrl);
+    res.send(postsWithImageUrl);
+  } catch (error) {
+    console.error("Error fetching posts:", error);
+    res.status(500).send({ error: "Failed to fetch posts" });
   }
-  res.send(posts);
 });
 
 const generateFileName = (bytes = 32) =>
   crypto.randomBytes(bytes).toString("hex");
 
-app.post("/api/posts", upload.single("image"), async (req, res) => {
+app.post("/api/posts", auth, upload.single("image"), async (req, res) => {
   try {
     const file = req.file;
     const fileBuffer = file.buffer;
     const caption = req.body.caption;
     const imageName = generateFileName();
-    // const params = {
-    //   Bucket: bucketName,
-    //   Key: imageName,
-    //   Body: fileBuffer,
-    //   ContentType: req.file.mimetype,
-    // };
-
-    // const command = new PutObjectCommand(params);
-    // await s3.send(command);
+    console.log("Imagename", imageName);
     await uploadFile(fileBuffer, imageName, file.mimetype);
 
     const post = await prisma.post.create({
       data: {
         imageName,
         caption,
+        user: {
+          connect: { id: req.user.userId }, // Connect the user based on the JWT token
+        },
+      },
+      include: {
+        user: true, // Include the user data in the response
       },
     });
+
+    console.log(post);
     res.status(201).send(post);
   } catch (error) {
     console.error("Error uploading file", error);
@@ -126,17 +153,21 @@ app.get("/api/posts/:id/comments", async (req, res) => {
 });
 
 // Post comment for a specific post
-app.post("/api/posts/:id/comments", async (req, res) => {
+app.post("/api/posts/:id/comments", auth, async (req, res) => {
   const postId = parseInt(req.params.id, 10);
-  const { content } = req.body;
-  if (!content || !postId) {
+  console.log("Post ID is", postId);
+  const { commentFromPic, userloggedin } = req.body;
+  console.log(commentFromPic);
+  const userId = req.user.userId;
+  if (!userId || !postId) {
     return res.status(400).json({ error: "Content and postId are required" });
   }
   try {
     const comment = await prisma.comment.create({
       data: {
-        postId: postId,
-        content: content, // Correctly use the content field
+        content: commentFromPic,
+        post: { connect: { id: postId } },
+        user: { connect: { id: userId } }, // Correctly use the content field
       },
     });
     res.status(201).json(comment);
@@ -171,19 +202,44 @@ app.put("/api/posts/:id/incrementComments", async (req, res) => {
 });
 
 // Posting a like
-app.post("/api/posts/:id/like", async (req, res) => {
+app.post("/api/posts/:id/like", auth, async (req, res) => {
   const { id } = req.params;
+  const userId = req.user.userId; // Assuming `req.user` contains authenticated user's info
+  console.log("USER ID", userId);
+  const postId = parseInt(id, 10);
+
   console.log("Like id:", id);
+
+  if (isNaN(postId)) {
+    return res.status(400).json({ message: "Invalid post ID." });
+  }
+
   try {
-    // Increment the like count in the `Like` table
-    await prisma.like.create({
-      data: {
-        postId: parseInt(id),
+    // Check if the user has already liked this post
+    const existingLike = await prisma.like.findFirst({
+      where: {
+        postId: postId,
+        userId: userId,
       },
     });
-    // Increment the totalLikes in the `Post` table
+
+    if (existingLike) {
+      return res
+        .status(400)
+        .json({ message: "User has already liked this post." });
+    }
+
+    // Create a new like entry in the `Like` table
+    await prisma.like.create({
+      data: {
+        post: { connect: { id: postId } },
+        user: { connect: { id: userId } },
+      },
+    });
+
+    // Increment the totalLikes count in the `Post` table
     const post = await prisma.post.update({
-      where: { id: parseInt(id) },
+      where: { id: postId },
       data: {
         totalLikes: {
           increment: 1,
@@ -191,10 +247,12 @@ app.post("/api/posts/:id/like", async (req, res) => {
       },
     });
 
-    res.status(200).send(post);
+    res.json(post);
   } catch (error) {
-    console.error("Error with updating likes");
-    res.status(500).json({ error: "An error occurred while liking the post" });
+    console.error("Error liking post:", error);
+    res
+      .status(500)
+      .json({ message: "An error occurred while liking the post." });
   }
 });
 
@@ -219,5 +277,73 @@ app.get("/api/posts/:id/like", async (req, res) => {
       .json({ error: "An error occurred while fetching the post for likes" });
   }
 });
+
+//Authentication
+app.post("/login", async (req, res) => {
+  console.log("Tryint to login");
+  const { email, password } = req.body;
+
+  const user = await prisma.user.findUnique({
+    where: { email },
+  });
+
+  if (!user) {
+    return res.status(401).json({ error: "Invalid email or password" });
+  }
+
+  const isValid = await bcrypt.compare(password, user.password);
+
+  if (!isValid) {
+    return res.status(401).json({ error: "Invalid email or password" });
+  }
+
+  const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET_KEY, {
+    expiresIn: "1h",
+  });
+
+  res.json({ token, user });
+});
+
+app.post("/register", async (req, res) => {
+  const { email, password, name } = req.body;
+
+  // Hash the password
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  // Create a new user
+  try {
+    const user = await prisma.user.create({
+      data: {
+        email,
+        password: hashedPassword,
+        name,
+      },
+    });
+    res.status(201).json(user);
+  } catch (error) {
+    res.status(400).json({ error: "User already exists" });
+  }
+});
+
+app.get("/api/me", auth, async (req, res) => {
+  try {
+    console.log("Searching for user - me");
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.userId },
+    });
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ error: "Internal server error." });
+  }
+});
+const logout = (req, res) => {
+  // Clear the JWT token or perform any logout logic
+  // For example, you could clear tokens from the client-side if needed.
+  res.status(200).json({ message: "Logged out successfully" });
+};
+app.post("/api/logout", auth, logout);
 
 app.listen(8080, () => console.log("listening on port 8080"));
