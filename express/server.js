@@ -1,6 +1,7 @@
 const { uploadFile, deleteFile } = require("./config/awsConfig");
 const auth = require("./middleware/auth");
 const express = require("express");
+const axios = require("axios");
 const cors = require("cors");
 const multer = require("multer");
 const bcrypt = require("bcrypt");
@@ -58,6 +59,8 @@ app.get("/api/posts", async (req, res) => {
       },
     });
 
+    // console.log("Posts from the get req of /posts are; ", posts);
+
     // Add the imageUrl field to each post
     const postsWithImageUrl = posts.map((post) => ({
       ...post,
@@ -74,14 +77,16 @@ app.get("/api/posts", async (req, res) => {
 
 const generateFileName = (bytes = 32) =>
   crypto.randomBytes(bytes).toString("hex");
-
+app.get("/test", async (req, res) => {
+  return res.json({ message: "Hello world" });
+});
 app.post("/api/posts", auth, upload.single("image"), async (req, res) => {
   try {
     const file = req.file;
     const fileBuffer = file.buffer;
     const caption = req.body.caption;
     const imageName = generateFileName();
-    console.log("Imagename", imageName);
+    // console.log("Imagename", imageName);
     await uploadFile(fileBuffer, imageName, file.mimetype);
 
     const post = await prisma.post.create({
@@ -97,7 +102,7 @@ app.post("/api/posts", auth, upload.single("image"), async (req, res) => {
       },
     });
 
-    console.log(post);
+    // console.log(post);
     res.status(201).send(post);
   } catch (error) {
     console.error("Error uploading file", error);
@@ -129,7 +134,7 @@ app.delete("/api/posts/:id", async (req, res) => {
     await deleteFile(post.imageName);
     // Delete the post
     await prisma.post.delete({ where: { id } });
-
+    console.log("Post deleted succesfully! ");
     res.status(200).json(post);
   } catch (error) {
     console.error("Error deleting post:", error);
@@ -144,6 +149,16 @@ app.get("/api/posts/:id/comments", async (req, res) => {
     const comments = await prisma.comment.findMany({
       where: { postId: postId },
       orderBy: { createdAt: "desc" }, // Order comments by creation date
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            // Any other user fields you need
+          },
+        },
+      },
     });
     res.status(201).send(comments);
   } catch (error) {
@@ -155,9 +170,9 @@ app.get("/api/posts/:id/comments", async (req, res) => {
 // Post comment for a specific post
 app.post("/api/posts/:id/comments", auth, async (req, res) => {
   const postId = parseInt(req.params.id, 10);
-  console.log("Post ID is", postId);
+  // console.log("Post ID is", postId);
   const { commentFromPic, userloggedin } = req.body;
-  console.log(commentFromPic);
+  // console.log(commentFromPic);
   const userId = req.user.userId;
   if (!userId || !postId) {
     return res.status(400).json({ error: "Content and postId are required" });
@@ -205,10 +220,10 @@ app.put("/api/posts/:id/incrementComments", async (req, res) => {
 app.post("/api/posts/:id/like", auth, async (req, res) => {
   const { id } = req.params;
   const userId = req.user.userId; // Assuming `req.user` contains authenticated user's info
-  console.log("USER ID", userId);
+  // console.log("USER ID", userId);
   const postId = parseInt(id, 10);
 
-  console.log("Like id:", id);
+  // console.log("Like id:", id);
 
   if (isNaN(postId)) {
     return res.status(400).json({ message: "Invalid post ID." });
@@ -280,7 +295,7 @@ app.get("/api/posts/:id/like", async (req, res) => {
 
 //Authentication
 app.post("/login", async (req, res) => {
-  console.log("Tryint to login");
+  console.log("Trying to login");
   const { email, password } = req.body;
 
   const user = await prisma.user.findUnique({
@@ -297,9 +312,13 @@ app.post("/login", async (req, res) => {
     return res.status(401).json({ error: "Invalid email or password" });
   }
 
-  const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET_KEY, {
-    expiresIn: "1h",
-  });
+  const token = jwt.sign(
+    { userId: user.id, isAdmin: user.isAdmin },
+    process.env.JWT_SECRET_KEY,
+    {
+      expiresIn: "1h",
+    }
+  );
 
   res.json({ token, user });
 });
@@ -327,7 +346,6 @@ app.post("/register", async (req, res) => {
 
 app.get("/api/me", auth, async (req, res) => {
   try {
-    console.log("Searching for user - me");
     const user = await prisma.user.findUnique({
       where: { id: req.user.userId },
     });
@@ -345,5 +363,21 @@ const logout = (req, res) => {
   res.status(200).json({ message: "Logged out successfully" });
 };
 app.post("/api/logout", auth, logout);
+app.get("/api/news", async (req, res) => {
+  try {
+    const response = await axios.get(
+      "https://newsapi.org/v2/top-headlines?country=us&apiKey=f09d0fd235364f29bab9440454f99ea4"
+    );
+    // console.log(response);
+    res.json(response.data);
+  } catch (error) {
+    console.error("Error fetching news:", error);
+    res.status(500).json({ error: "Failed to fetch news" });
+  }
+});
 
 app.listen(8080, () => console.log("listening on port 8080"));
+
+// rsync -avz --exclude 'node_modules' --exclude '.git' --exclude '.env' \
+// -e "ssh -i ~//Users/mananshah/Documents/ssh/california-manan-mbp" \
+// . ubuntu@ec2-18-225-36-105.us-east-2.compute.amazonaws.com:~/app
