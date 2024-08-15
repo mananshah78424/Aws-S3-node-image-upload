@@ -5,7 +5,6 @@ const jwtSecret = process.env.JWT_SECRET_KEY;
 const authenticateToken = (req, res, next) => {
   const authHeader = req.get("Authorization");
   const token = authHeader?.replace("Bearer ", "");
-  console.log("Token:", token);
 
   if (!token) {
     return res.status(401).json({ error: "Access denied. No token provided." });
