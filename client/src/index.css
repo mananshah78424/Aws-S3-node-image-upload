@@ -5,6 +5,7 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior: none;
 }
 
 code {
@@ -16,11 +17,58 @@ code {
   background-color: #121212;
 }
 
+.instructions-bg-color-screen {
+  background-color: #0a0a0b;
+}
 .sidebarText {
   font-size: 18px;
   font-weight: 200;
 }
+.sidebar-text {
+  color: #ffffff;
+}
 
+.sidebar-border-color {
+  border-color: #ffffff19;
+}
+.sidebar-option-tab {
+  width: 200px;
+}
+.sidebar-border-bottom-color {
+  border: 0;
+  border-bottom: 1px solid;
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+  border-color: #ffffff19;
+}
+
+.sharebox-box {
+  border-radius: 50px;
+}
+.sharebox-textarea {
+  height: 20px; /* Adjust this value to control the height */
+  padding: 8px; /* Ensure padding is consistent */
+  border: none; /* Ensure no border */
+  box-sizing: border-box;
+}
+.sharebox-textarea {
+  height: 40px; /* Adjust this value to your desired height */
+  padding: 8px; /* Adjust padding as needed */
+  border: none;
+  box-sizing: border-box; /* Ensures padding is included in the total height */
+  resize: none; /* Disables resizing */
+  overflow: hidden; /* Hides overflow text */
+  display: flex; /* Use flexbox to center text */
+  align-items: center; /* Center text vertically */
+  justify-content: center; /* Center text horizontally */
+  text-align: center; /* Center text horizontally within the textarea */
+  line-height: 24px; /* Set this to match the height if needed */
+}
+
+.sharebox-textarea::placeholder {
+  text-align: center; /* Center placeholder text horizontally */
+  color: gray; /* Adjust color if needed */
+}
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
