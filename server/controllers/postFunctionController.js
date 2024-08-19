@@ -22,7 +22,7 @@ const getPosts = async (req, res) => {
     //Map the URL with CDN
     const postsWithImageUrl = posts.map((post) => ({
       ...post,
-      imageUrl: `https://d3st0nkyboghj9.cloudfront.net/${post.imageName}`,
+      fileName: `https://d3st0nkyboghj9.cloudfront.net/${post.fileName}`,
     }));
 
     res.send(postsWithImageUrl);
@@ -36,27 +36,46 @@ const generateFileName = (bytes = 32) =>
   crypto.randomBytes(bytes).toString("hex");
 const createPost = async (req, res) => {
   try {
-    const file = req.file;
-    const fileBuffer = file.buffer;
-    const caption = req.body.caption;
-    const imageName = generateFileName();
-    await uploadFile(fileBuffer, imageName, file.mimetype);
-
-    const post = await prisma.post.create({
-      data: {
-        imageName,
-        caption,
-        user: {
-          connect: { id: req.user.userId }, // Connect the user based on the JWT token
+    const mediaType = req.body.mediaType;
+    if (mediaType == "text") {
+      const thought = req.body.thought;
+      const post = await prisma.post.create({
+        data: {
+          fileName: null,
+          caption: thought,
+          user: {
+            connect: { id: req.user.userId }, // Connect the user based on the JWT token
+          },
+          mediaType,
         },
-      },
-      include: {
-        user: true, // Include the user data in the response
-      },
-    });
+        include: {
+          user: true, // Include the user data in the response
+        },
+      });
+      res.status(201).send(post);
+    } else {
+      const file = req.file;
+      const fileBuffer = file.buffer;
+      const caption = req.body.caption;
+      const fileMimeType = file.mimetype;
+      const fileName = generateFileName();
+      await uploadFile(fileBuffer, fileName, fileMimeType);
 
-    // console.log(post);
-    res.status(201).send(post);
+      const post = await prisma.post.create({
+        data: {
+          fileName,
+          caption,
+          user: {
+            connect: { id: req.user.userId }, // Connect the user based on the JWT token
+          },
+          mediaType,
+        },
+        include: {
+          user: true, // Include the user data in the response
+        },
+      });
+      res.status(201).send(post);
+    }
   } catch (error) {
     console.error("Error creating post", error);
     res.status(500).send({ message: "Error uploading file", error });
@@ -72,15 +91,23 @@ const deletePost = async (req, res) => {
   try {
     // Find the post
     const post = await prisma.post.findUnique({ where: { id } });
+    if (!post) {
+      return res.status(404).json({ error: "Post not found" });
+    }
+
     // Delete associated comments
     await prisma.comment.deleteMany({ where: { postId: id } });
-    //Delete associated likes
+    // Delete associated likes
     await prisma.like.deleteMany({ where: { postId: id } });
-    // Delete the post image from S3
-    await deleteFile(post.imageName);
+
+    // Check if fileName exists before attempting to delete
+    if (post.fileName) {
+      await deleteFile(post.fileName);
+    }
+
     // Delete the post
     await prisma.post.delete({ where: { id } });
-    console.log("Post deleted succesfully! ");
+    console.log("Post deleted successfully!");
     res.status(200).json(post);
   } catch (error) {
     console.error("Error deleting post:", error);

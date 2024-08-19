@@ -11,6 +11,7 @@ model User {
   id        Int       @id @default(autoincrement())
   email     String    @unique
   password  String
+  bio       String?
   name      String
   isAdmin   Boolean  @default(false) // Add this field
   posts     Post[]    @relation("UserPosts")
@@ -22,7 +23,8 @@ model User {
 
 model Post {
   id            Int       @id @default(autoincrement())
-  imageName     String
+  fileName      String?    // Renamed from imageName
+  mediaType     String    // New column
   caption       String
   totalComments Int       @default(0)
   totalLikes    Int       @default(0)

@@ -35,8 +35,7 @@ const loginUser = async (req, res) => {
 };
 
 const registerUser = async (req, res) => {
-  const { email, password, name } = req.body;
-
+  const { email, password, name, bio } = req.body;
   // Hash the password
   const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -47,6 +46,7 @@ const registerUser = async (req, res) => {
         email,
         password: hashedPassword,
         name,
+        bio,
       },
     });
     res.status(201).json(user);

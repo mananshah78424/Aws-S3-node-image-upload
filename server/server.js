@@ -26,6 +26,7 @@ const {
   deletePost,
 } = require("./controllers/postFunctionController");
 
+const { fetchUserPosts } = require("./controllers/UserContainer");
 const { getNews } = require("./controllers/newsController");
 
 const dotenv = require("dotenv");
@@ -45,7 +46,7 @@ const prisma = new PrismaClient();
 app.get("/api/posts", getPosts);
 
 //Create post
-app.post("/api/posts", auth, upload.single("image"), createPost);
+app.post("/api/posts", auth, upload.single("file"), createPost);
 
 //Delete post
 app.delete("/api/posts/:id", deletePost);
@@ -70,6 +71,10 @@ app.post("/api/posts/register", registerUser);
 app.get("/api/posts/me", auth, userLoggedIn);
 app.post("/api/posts/logout", auth, logoutUser);
 
+//Profile page
+app.get("/api/posts/:id/userposts", auth, fetchUserPosts);
+
+//News page
 app.get("/api/posts/news", getNews);
 
 const port = process.env.PORT || 3001;
