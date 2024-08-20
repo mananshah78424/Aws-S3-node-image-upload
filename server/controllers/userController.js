@@ -3,8 +3,9 @@ const prisma = new PrismaClient();
 const fetchUserPosts = async (req, res) => {
   const userId = parseInt(req.params.id, 10);
   const posts = await prisma.post.findMany({
-    where: { userId: userId },
+    where: { userId: userId, mediaType: { not: "text" } },
   });
+
   res.send(posts);
 };
 

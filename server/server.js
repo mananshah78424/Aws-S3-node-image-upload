@@ -18,15 +18,17 @@ const {
   incrementComments,
   addLike,
   getLikes,
+  getNotifications,
 } = require("./controllers/postAttributesController");
 
 const {
   getPosts,
   createPost,
   deletePost,
+  getThoughts,
 } = require("./controllers/postFunctionController");
 
-const { fetchUserPosts } = require("./controllers/UserContainer");
+const { fetchUserPosts } = require("./controllers/userController");
 const { getNews } = require("./controllers/newsController");
 
 const dotenv = require("dotenv");
@@ -57,13 +59,20 @@ app.get("/api/posts/:id/comments", getComments);
 // Post and update comment for a specific post
 app.post("/api/posts/:id/comments", auth, createComment);
 
+// Increment comment counts
 app.put("/api/posts/:id/incrementComments", incrementComments);
+
+// Get user thought
+app.get("/api/posts/:id/userthoughts", getThoughts);
 
 // Posting a like
 app.post("/api/posts/:id/like", auth, addLike);
 
 // Getting total number of likes
 app.get("/api/posts/:id/like", getLikes);
+
+//Get notifications
+app.get("/api/posts/notifications", auth, getNotifications);
 
 //Authentication
 app.post("/api/posts/login", loginUser);

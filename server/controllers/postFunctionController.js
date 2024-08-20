@@ -3,6 +3,14 @@ const prisma = new PrismaClient();
 const { uploadFile, deleteFile } = require("../config/awsConfig"); // Adjust the path based on your setup
 const crypto = require("crypto");
 
+const getThoughts = async (req, res) => {
+  const userId = parseInt(req.params.id, 10);
+  const thoughts = await prisma.post.findMany({
+    orderBy: { created: "desc" },
+    where: { mediaType: "text", userId: userId },
+  });
+  res.send(thoughts);
+};
 const getPosts = async (req, res) => {
   try {
     //Get posts in order of date
@@ -119,4 +127,5 @@ module.exports = {
   getPosts,
   createPost,
   deletePost,
+  getThoughts,
 };

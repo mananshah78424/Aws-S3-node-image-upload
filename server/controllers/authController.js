@@ -4,7 +4,8 @@ const { uploadFile, deleteFile } = require("../config/awsConfig"); // Adjust the
 const crypto = require("crypto");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-
+const { updateNoficiations } = require("./postAttributesController");
+const { log } = require("console");
 const loginUser = async (req, res) => {
   console.log("Trying to login");
   const { email, password } = req.body;
@@ -36,9 +37,9 @@ const loginUser = async (req, res) => {
 
 const registerUser = async (req, res) => {
   const { email, password, name, bio } = req.body;
+
   // Hash the password
   const hashedPassword = await bcrypt.hash(password, 10);
-
   // Create a new user
   try {
     const user = await prisma.user.create({
@@ -49,9 +50,11 @@ const registerUser = async (req, res) => {
         bio,
       },
     });
+    console.log(user);
+    updateNoficiations(null, user.id, "register");
     res.status(201).json(user);
   } catch (error) {
-    res.status(400).json({ error: "User already exists" });
+    res.status(400).json(error);
   }
 };
 

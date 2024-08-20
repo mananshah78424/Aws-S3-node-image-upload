@@ -2,6 +2,8 @@ const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 const { uploadFile, deleteFile } = require("../config/awsConfig"); // Adjust the path based on your setup
 const crypto = require("crypto");
+const { type } = require("os");
+const { log } = require("console");
 
 const getComments = async (req, res) => {
   const postId = parseInt(req.params.id, 10);
@@ -22,12 +24,13 @@ const getComments = async (req, res) => {
     res.status(201).send(comments);
   } catch (error) {
     console.error("Error fetching comments: ", error);
-    res.status(500).json({ error: "Failed to fetch comments:", error });
+    res.status(500).send(error);
   }
 };
 
 const createComment = async (req, res) => {
   const postId = parseInt(req.params.id, 10);
+  console.log("Comment attempt on ", postId);
   const { commentFromPic } = req.body;
   const userId = req.user.userId;
 
@@ -51,6 +54,7 @@ const createComment = async (req, res) => {
         },
       },
     });
+    updateNoficiations(postId, userId, "comment");
     res.status(201).send(updatedPost);
   } catch (error) {
     console.error("Error adding comment:", error);
@@ -60,6 +64,7 @@ const createComment = async (req, res) => {
 
 const incrementComments = async (req, res) => {
   const postId = parseInt(req.params.id, 10);
+  console.log(postId);
   if (isNaN(postId)) {
     return res.status(400).json({ error: "Invalid post ID" });
   }
@@ -126,6 +131,8 @@ const addLike = async (req, res) => {
       },
     });
 
+    updateNoficiations(postId, userId, "like");
+
     res.json(post);
   } catch (error) {
     console.error("Error liking post:", error);
@@ -156,10 +163,121 @@ const getLikes = async (req, res) => {
   }
 };
 
+const updateNoficiations = async (postId, userId, type) => {
+  const userActionDoneBy = userId; // Logged in User
+  const userActionDoneByDetails = await prisma.user.findUniqueOrThrow({
+    where: { id: userActionDoneBy },
+  });
+  const userActionDoneByName = userActionDoneByDetails.name;
+
+  if (type === "comment") {
+    const userCommentedPostId = postId; // Post interacting with
+    const content = `${userActionDoneByName} commented on your postId: ${userCommentedPostId}`;
+
+    const userToInform = await prisma.post.findFirstOrThrow({
+      where: { id: userCommentedPostId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+    const userToInformId = userToInform.userId;
+    try {
+      const notified = await prisma.notification.create({
+        data: {
+          type: type,
+          content: content,
+          userIdToInform: userToInformId,
+          postId: userCommentedPostId,
+        },
+      });
+      console.log("Data pushed to notifications tab");
+    } catch (error) {
+      console.error(error);
+    }
+  } else if (type == "register") {
+    try {
+      const userActionDoneBy = userId; // Logged in User
+      const userActionDoneByDetails = await prisma.user.findUniqueOrThrow({
+        where: { id: userActionDoneBy },
+      });
+      const userActionDoneByName = userActionDoneByDetails.name;
+      const content = `${userActionDoneByName} just created an account!`;
+      // Find all users except the newly registered one
+      const users = await prisma.user.findMany({
+        where: {
+          id: {
+            not: userId,
+          },
+        },
+      });
+
+      // Create notifications for each user
+      for (const user of users) {
+        await prisma.notification.create({
+          data: {
+            type: type,
+            content: content,
+            userIdToInform: user.id,
+          },
+        });
+      }
+      console.log("Notifications sent to all users except the new one.");
+    } catch (error) {
+      console.error("Error sending notifications:", error);
+    }
+  } else if (type === "like") {
+    const userActionDoneBy = userId;
+    const userActionDoneByDetails = await prisma.user.findUniqueOrThrow({
+      where: { id: userActionDoneBy },
+    });
+    const userActionDoneByName = userActionDoneByDetails.name;
+    const userToInform = await prisma.post.findFirstOrThrow({
+      where: { id: userCommentedPostId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+    const content = `${userActionDoneByName} just liked your post ${postId}`;
+    await prisma.notification.create({
+      data: {
+        type: type,
+        content: content,
+        userIdToInform: userToInform,
+      },
+    });
+  }
+};
+
+const getNotifications = async (req, res) => {
+  try {
+    const notifications = await prisma.notification.findMany({});
+    res.status(201).send(notifications);
+  } catch (error) {
+    console.error("Error sending notifications:", error);
+    res.status(500).json({
+      message: error,
+    });
+  }
+};
+
 module.exports = {
   getComments,
   createComment,
   incrementComments,
   addLike,
   getLikes,
+  updateNoficiations,
+  getNotifications,
 };
