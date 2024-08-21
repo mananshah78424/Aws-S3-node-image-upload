@@ -6,7 +6,9 @@ const authenticateToken = (req, res, next) => {
   const authHeader = req.get("Authorization");
   const token = authHeader?.replace("Bearer ", "");
   if (!token) {
-    return res.status(401).json({ error: "Access denied. No token provided." });
+    return res
+      .status(401)
+      .send({ error: "Please login to complete further actions!" });
   }
 
   try {
@@ -14,7 +16,8 @@ const authenticateToken = (req, res, next) => {
     req.user = decoded;
     next();
   } catch (error) {
-    res.status(400).json({ error: "Invalid token." });
+    // alert("Please login ");
+    res.status(400).send({ error: "Please login! Your token has expired!" });
   }
 };
 const logout = (req, res) => {
