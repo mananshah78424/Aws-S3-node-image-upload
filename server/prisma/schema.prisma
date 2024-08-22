@@ -71,6 +71,6 @@ model Notification {
   postId        Int?     // Optional field to relate to Post
   post          Post?    @relation("PostNotifications", fields: [postId], references: [id])
   createdAt     DateTime @default(now())
-  postURL       String?   //URL for the post to display as the picture
+  posturl       String?   //URL for the post to display as the picture
   @@index([userIdToInform])
 }
