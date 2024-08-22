@@ -76,7 +76,7 @@ app.get("/api/posts/notifications", auth, getNotifications);
 
 //Authentication
 app.post("/api/posts/login", loginUser);
-app.post("/api/posts/register", registerUser);
+app.post("/api/posts/register", upload.single("file"), registerUser);
 app.get("/api/posts/me", auth, userLoggedIn);
 app.post("/api/posts/logout", auth, logoutUser);
 

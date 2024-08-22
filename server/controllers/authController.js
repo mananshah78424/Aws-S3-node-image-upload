@@ -34,12 +34,20 @@ const loginUser = async (req, res) => {
 
   res.json({ token, user });
 };
-
+const generateFileName = (bytes = 32) =>
+  crypto.randomBytes(bytes).toString("hex");
 const registerUser = async (req, res) => {
-  const { email, password, name, bio } = req.body;
-
-  // Hash the password
+  const email = req.body.email;
+  const password = req.body.password;
   const hashedPassword = await bcrypt.hash(password, 10);
+  const name = req.body.name;
+  const bio = req.body.bio;
+  const file = req.file;
+  const fileBuffer = file.buffer;
+  const fileMimeType = file.mimetype;
+  const fileName = generateFileName();
+  await uploadFile(fileBuffer, fileName, fileMimeType);
+
   // Create a new user
   try {
     const user = await prisma.user.create({
@@ -48,9 +56,10 @@ const registerUser = async (req, res) => {
         password: hashedPassword,
         name,
         bio,
+        profilepic: fileName,
       },
     });
-    console.log(user);
+    console.log("Registered user succesfull");
     updateNoficiations(null, user.id, "register");
     res.status(201).json(user);
   } catch (error) {

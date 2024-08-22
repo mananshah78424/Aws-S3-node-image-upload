@@ -1,22 +1,24 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PostFinder from "../baseApi";
-import NewsBar from "../components/NewsBar";
 import SideBar from "../components/SideBar";
+
 export default function NewPost() {
   const [file, setFile] = useState();
-  const [caption, setCaption] = useState();
-  const [imagePreview, setImagePreview] = useState();
-  const token = sessionStorage.getItem("jwtToken");
+  const [caption, setCaption] = useState("");
+  const [mediaPreview, setMediaPreview] = useState();
+  const [fileType, setFileType] = useState(""); // State for file type
   const [newsReady, setNewsReady] = useState(false);
-
-  let navigate = useNavigate();
+  const token = sessionStorage.getItem("jwtToken");
+  const navigate = useNavigate();
 
   const submit = async (event) => {
     event.preventDefault();
     const formData = new FormData();
-    formData.append("image", file);
+    formData.append("file", file); // Media file
     formData.append("caption", caption);
+    formData.append("mediaType", fileType);
+
     await PostFinder.post("/", formData, {
       headers: {
         "Content-Type": "multipart/form-data",
@@ -29,38 +31,57 @@ export default function NewPost() {
   const fileSelected = (event) => {
     const file = event.target.files[0];
     setFile(file);
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagePreview(reader.result);
-    };
+
     if (file) {
+      const fileType = file.type;
+      if (fileType.startsWith("video/")) {
+        setFileType("Video");
+      } else if (fileType.startsWith("image/")) {
+        setFileType("Image");
+      } else if (fileType.startsWith("text/")) {
+        setFileType("Text");
+      } else {
+        setFileType("Other");
+      }
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setMediaPreview(reader.result);
+      };
       reader.readAsDataURL(file);
     }
   };
 
   return (
-    <div className="flex">
-      <SideBar />
-      <div className="mt-10 flex flex-col items-center w-full lg:w-3/5 p-4">
-        {!newsReady ? (
-          <div className="flex items-center justify-center w-full h-full">
-            <div className="text-white">Loading NewsBar...</div>
-          </div>
-        ) : (
+    <div className="flex flex-col min-h-screen dark-bg-color-screen">
+      <div className="flex flex-grow">
+        <SideBar />
+        <div className="flex flex-col w-full lg:w-3/5 p-4 mx-auto mt-10">
           <form
             onSubmit={submit}
-            className="flex flex-col space-y-6 bg-white shadow-lg rounded-lg p-8 w-full max-w-lg"
+            className="flex flex-col space-y-6 bg-white shadow-lg rounded-lg p-8 w-full max-w-lg mx-auto"
           >
             <label
               htmlFor="uploadFile1"
               className="bg-white text-gray-500 font-semibold text-base rounded-lg h-52 flex flex-col items-center justify-center cursor-pointer border-2 border-gray-300 border-dashed mx-auto w-full relative"
             >
-              {imagePreview && (
-                <img
-                  src={imagePreview}
-                  alt="Preview"
-                  className="absolute inset-0 object-cover w-full h-full rounded-lg"
-                />
+              {mediaPreview && (
+                <>
+                  {file?.type.startsWith("video/") ? (
+                    <video
+                      src={mediaPreview}
+                      alt="Preview"
+                      className="absolute inset-0 object-cover w-full h-full rounded-lg"
+                      controls
+                    />
+                  ) : (
+                    <img
+                      src={mediaPreview}
+                      alt="Preview"
+                      className="absolute inset-0 object-cover w-full h-full rounded-lg"
+                    />
+                  )}
+                </>
               )}
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -75,11 +96,11 @@ export default function NewPost() {
                 type="file"
                 id="uploadFile1"
                 className="hidden"
-                accept="image/*"
+                accept="image/*,video/*" // Allow both images and videos
                 onChange={fileSelected}
               />
               <p className="text-xs font-medium text-gray-400 mt-2">
-                Images are allowed!
+                Images and videos are allowed!
               </p>
             </label>
             <input
@@ -89,6 +110,11 @@ export default function NewPost() {
               placeholder="Caption"
               className="w-full border border-gray-300 rounded-lg py-2 px-4"
             />
+            {fileType && (
+              <p className="text-sm text-gray-600 mt-2">
+                File type: {fileType}
+              </p>
+            )}
             <button
               type="submit"
               className="w-full py-2 px-4 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 transition duration-200"
@@ -96,9 +122,8 @@ export default function NewPost() {
               Submit
             </button>
           </form>
-        )}
+        </div>
       </div>
-      <NewsBar setReady={setNewsReady} />
     </div>
   );
 }

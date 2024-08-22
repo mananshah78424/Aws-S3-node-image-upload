@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import PostModal from "./PostModal"; // Import the PostModal component
+import PostThoughtModal from "../components/PostThoughtModal"; // Import the PostModal component
 
 const ShareBox = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -17,7 +17,7 @@ const ShareBox = () => {
         />
       </div>
 
-      {isModalOpen && <PostModal onClose={closeModal} />}
+      {isModalOpen && <PostThoughtModal onClose={closeModal} />}
     </div>
   );
 };

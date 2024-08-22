@@ -21,26 +21,16 @@ export default function SinglePost({
   setPosts,
 }) {
   let navigate = useNavigate();
-  const locations = [
-    "California, USA",
-    "New York, USA",
-    "London, UK",
-    "Tokyo, Japan",
-    "Paris, France",
-    "Berlin, Germany",
-    "Sydney, Australia",
-    "Toronto, Canada",
-    "Beijing, China",
-    "Rio de Janeiro, Brazil",
-  ];
+
   const {
     id: postId,
     caption: postCaption,
-    imageUrl: postImageUrl,
+    fileName: postImageUrl,
     totalComments: postTotalComments,
     totalLikes: postTotalLikes,
-    createdAt: postCreated,
+    created: postCreated,
     user: postUser,
+    mediaType: postMediaType,
   } = post;
   const [time, setTime] = useState(timeAgo(postCreated));
   const [comments, setComments] = useState([]);
@@ -49,25 +39,15 @@ export default function SinglePost({
   const [postDetails, setPostDetails] = useState(post);
   const [likes, setLikes] = useState(0);
   const commentInputRef = useRef(null);
-  const [randomLocation, setRandomLocation] = useState("");
-
+  const [loginError, SetLoginError] = useState("");
   const userFromContext = useUser().user;
   const token = sessionStorage.getItem("jwtToken");
 
   useEffect(() => {
-    const locations = ["California, USA", "New York, USA"];
-
-    const getRandomLocation = () => {
-      const randomIndex = Math.floor(Math.random() * locations.length);
-      return locations[randomIndex];
-    };
-
-    setRandomLocation(getRandomLocation());
-  }, []); // Empty dependency array ensures this runs only once
-  useEffect(() => {
     async function fetchComments() {
       try {
         const result = await PostFinder.get(`/${postId}/comments`);
+
         setComments(result.data);
       } catch (error) {
         console.error("Error fetching comments:", error);
@@ -98,6 +78,7 @@ export default function SinglePost({
   const updateLike = async (id, post) => {
     if (!userFromContext) {
       console.error("User not authenticated.");
+      SetLoginError("Please login to like some posts!");
       return;
     }
 
@@ -121,12 +102,21 @@ export default function SinglePost({
       }));
 
       // Optionally, refetch likes after submitting
-      const result = await PostFinder.get(`/${postId}`);
-      setPostDetails(result.data); // Update the post details with the latest data
+      // const result = await PostFinder.get(`/`);
+      // setPostDetails(result.data); // Update the post details with the latest data
     } catch (error) {
       console.error("Error liking the post:", error);
     }
   };
+  useEffect(() => {
+    if (loginError) {
+      const timer = setTimeout(() => {
+        SetLoginError("");
+      }, 3000); // Remove error message after 3 seconds
+
+      return () => clearTimeout(timer);
+    }
+  }, [loginError]); // Effect depends on loginError state
 
   const handleCommentSubmit = async (event) => {
     event.preventDefault();
@@ -146,7 +136,7 @@ export default function SinglePost({
           }
         );
 
-        await PostFinder.put(`/${postId}/incrementComments`);
+        // const res = await PostFinder.put(`/${postId}/incrementComments`);
 
         setComment("");
         navigate("/");
@@ -170,77 +160,96 @@ export default function SinglePost({
 
   return (
     <div className={`${className}`}>
+      {loginError && (
+        <div
+          className={`bg-red-500 text-white p-4 rounded-lg fixed mt-4 top-0 left-1/2 transform -translate-x-1/2 w-full max-w-lg z-50 alert-transition ${
+            !loginError ? "alert-hidden" : ""
+          }`}
+        >
+          {loginError}
+        </div>
+      )}
+
       {/* Post Header */}
       {/* <div className="flex items-center justify-between p-2 dark-bg-color-screen">
         <div className="flex items-center">
           <p className="ml-3 font-semibold text-gray-800 text-lg">username</p>
         </div>
       </div> */}
-      <div className="flex pb-1 dark-bg-color-screen">
+      <div className="flex pb-1 dark-bg-color-screen items-center">
         <div className="icon">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="white"
-            className="size-10 bg:text-gray-500"
-          >
-            <path
-              fillRule="evenodd"
-              d="M18.685 19.097A9.723 9.723 0 0 0 21.75 12c0-5.385-4.365-9.75-9.75-9.75S2.25 6.615 2.25 12a9.723 9.723 0 0 0 3.065 7.097A9.716 9.716 0 0 0 12 21.75a9.716 9.716 0 0 0 6.685-2.653Zm-12.54-1.285A7.486 7.486 0 0 1 12 15a7.486 7.486 0 0 1 5.855 2.812A8.224 8.224 0 0 1 12 20.25a8.224 8.224 0 0 1-5.855-2.438ZM15.75 9a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z"
-              clipRule="evenodd"
-            />
-          </svg>
+          {post.user.profilepic ? (
+            <img
+              src={`https://d3st0nkyboghj9.cloudfront.net/${post.user.profilepic}`}
+              className="w-10 h-10 rounded-full mb-2"
+            ></img>
+          ) : (
+            <img
+              src="https://image.api.playstation.com/cdn/UP1063/BLUS31423_00/rmBPMz7gHm6Oc5YJlYVOvCptLqSTuOjf.png?w=440&thumb=false"
+              className="w-10 h-10 rounded-full mb-2"
+            ></img>
+          )}
         </div>
         <div className="w-full ml-4">
-          <div className="flex items-center text-white font-medium">
+          <div className="flex items-center text-white font-medium justify-between">
             <div className="flex items-center">
-              <div className="flex items-center">
-                <span className="font-bold text-gray-900 dark:text-white">
+              <div className="flex flex-col">
+                <span className="flex flex-row font-bold text-gray-900 dark:text-white items-center">
                   {postUser.name}
                   {/* {userFromContext && userFromContext.name ? (
                     <p className="user-name">{userFromContext.name}</p>
                   ) : (
                     <p className="user-name">User</p>
                   )} */}
+                  <svg
+                    aria-label="Verified"
+                    fill="rgb(0, 149, 246)"
+                    height="12"
+                    role="img"
+                    viewBox="0 0 40 40"
+                    width="12"
+                    className="ml-2"
+                  >
+                    <title>Verified</title>
+                    <path
+                      d="M19.998 3.094 14.638 0l-2.972 5.15H5.432v6.354L0 14.64 3.094 20 0 25.359l5.432 3.137v5.905h5.975L14.638 40l5.36-3.094L25.358 40l3.232-5.6h6.162v-6.01L40 25.359 36.905 20 40 14.641l-5.248-3.03v-6.46h-6.419L25.358 0l-5.36 3.094Zm7.415 11.225 2.254 2.287-11.43 11.5-6.835-6.93 2.244-2.258 4.587 4.581 9.18-9.18Z"
+                      fillRule="evenodd"
+                    ></path>
+                  </svg>
                 </span>
+                <p className="text-gray-100 text-xs">{time}</p>
               </div>
-              <div className="ml-2">
-                <svg
-                  aria-label="Verified"
-                  fill="rgb(0, 149, 246)"
-                  height="12"
-                  role="img"
-                  viewBox="0 0 40 40"
-                  width="12"
-                >
-                  <title>Verified</title>
-                  <path
-                    d="M19.998 3.094 14.638 0l-2.972 5.15H5.432v6.354L0 14.64 3.094 20 0 25.359l5.432 3.137v5.905h5.975L14.638 40l5.36-3.094L25.358 40l3.232-5.6h6.162v-6.01L40 25.359 36.905 20 40 14.641l-5.248-3.03v-6.46h-6.419L25.358 0l-5.36 3.094Zm7.415 11.225 2.254 2.287-11.43 11.5-6.835-6.93 2.244-2.258 4.587 4.581 9.18-9.18Z"
-                    fillRule="evenodd"
-                  ></path>
-                </svg>
-              </div>
-            </div>
-            <div className="flex items-center">
-              <span className="mx-1">•</span>
-
-              {time}
             </div>
           </div>
-          <div className="text-white text-xs mb-2">{randomLocation}</div>
         </div>
       </div>
 
       {/* Post Image */}
-      <img
-        className="object-cover border rounded-[2px] border-gray-900 shadow-lg pb-2 post-image w-full"
-        style={{
-          height: "550px",
-          borderBottom: "2px solid #1A202C", // Tailwind's text-gray-600 color
-        }}
-        src={postImageUrl}
-        alt="Post"
-      />
+
+      {postMediaType === "Image" ? (
+        <img
+          className="object-cover border rounded-[2px] border-gray-900 shadow-lg pb-2 post-image w-full"
+          style={{
+            height: "550px",
+            borderBottom: "2px solid #1A202C", // Tailwind's text-gray-600 color
+          }}
+          src={postImageUrl}
+          alt="Post"
+        />
+      ) : postMediaType === "Video" ? (
+        <video
+          className="object-cover border rounded-[2px] border-gray-900 shadow-lg pb-2 post-image w-full"
+          style={{
+            height: "550px",
+            borderBottom: "2px solid #1A202C", // Tailwind's text-gray-600 color
+          }}
+          src={postImageUrl}
+          alt="Post"
+          controls // Ensure controls are enabled
+        />
+      ) : (
+        <div>{postCaption}</div>
+      )}
 
       {/* Post Content */}
       <div className="p-2 text-white">
@@ -315,16 +324,23 @@ export default function SinglePost({
         {/* Modal Content */}
         <div className="w-full flex flex-row">
           {/* Image on the left */}
-          <div className="w-3/4 pr-4">
-            <img
-              className="w-full h-[500px] object-cover rounded-lg"
-              src={post.imageUrl}
-              alt="Post"
-            />
-          </div>
+          {postMediaType !== "text" && (
+            <div className="w-3/4 pr-4">
+              <img
+                className="w-full h-[500px] object-cover rounded-lg"
+                src={postImageUrl}
+                alt="Post"
+              />
+            </div>
+          )}
 
           {/* Comments on the right */}
-          <div className="w-1/2 pl-4 flex flex-col">
+          <div
+            className={`flex flex-col pl-4 ${
+              postMediaType !== "text" ? "w-1/2" : "w-full"
+            }`}
+          >
+            {" "}
             <h3 className="text-gray-700 font-semibold text-lg mb-3">
               {postCaption || ""}
             </h3>
@@ -350,7 +366,6 @@ export default function SinglePost({
                 <p className="text-gray-700">No comments yet.</p>
               )}
             </div>
-
             {/* Comment Input */}
             {userFromContext && (
               <div className="flex flex-col border-t border-gray-300 mt-4 pt-4">

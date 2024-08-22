@@ -22,6 +22,7 @@ const getPosts = async (req, res) => {
             id: true,
             name: true,
             email: true,
+            profilepic: true,
           },
         },
       },

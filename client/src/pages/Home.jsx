@@ -5,6 +5,7 @@ import ShareBox from "../components/ShareBox";
 import SideBar from "../components/SideBar";
 import SinglePost from "../components/SinglePost";
 import { useUser } from "../helpers/userContext"; // Import the user context
+
 export default function App() {
   const [posts, setPosts] = useState([]);
   const userFromContext = useUser().user;
@@ -14,6 +15,7 @@ export default function App() {
     async function getPosts() {
       try {
         const result = await PostFinders.get("/");
+        console.log("Searching for results", result);
         setPosts(result.data);
       } catch (error) {
         console.error("Error fetching posts:", error);
@@ -59,22 +61,22 @@ export default function App() {
   };
 
   return (
-    <div
-      className="flex flex-col flex-grow flex-shrink-0 container"
-      style={{ marginLeft: "20px", marginRight: "-20px" }}
-    >
-      <div className="flex flex-row items-start">
-        <div className="w-1/4 h-full" tabindex="-1">
+    <div className="flex flex-col flex-grow flex-shrink-0 container mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="flex flex-col lg:flex-row lg:space-x-4">
+        {/* Sidebar */}
+        <div className="w-full lg:w-1/4 lg:h-full lg:sticky lg:top-0">
           <SideBar />
         </div>
-        <div className="flex-1">
+
+        {/* Main content */}
+        <div className="flex-1 lg:overflow-y-auto lg:pb-16">
           {!newsReady ? (
             <div className="flex items-center justify-center w-full h-full">
               <div className="text-white">Loading NewsBar...</div>
             </div>
           ) : (
             <div className="flex flex-col space-y-6 px-4 py-8">
-              <ShareBox></ShareBox>
+              <ShareBox />
               {posts.map((post) => (
                 <div
                   key={`post-${post.id}`}
@@ -90,8 +92,10 @@ export default function App() {
             </div>
           )}
         </div>
-        <div className="w-1/4 h-full">
-          <NewsBar setReady={setNewsReady}></NewsBar>
+
+        {/* NewsBar */}
+        <div className="w-full lg:w-1/4 lg:h-full lg:sticky lg:top-0">
+          <NewsBar setReady={setNewsReady} />
         </div>
       </div>
     </div>

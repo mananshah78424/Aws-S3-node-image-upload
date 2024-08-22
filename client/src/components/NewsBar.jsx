@@ -45,7 +45,7 @@ export default function NewsBar({ setReady }) {
   if (loading) return <div className="p-4">Loading News...</div>;
 
   return (
-    <div className="p-4 space-y-4 text-white lg:pr-10 mx-auto lg:mx-0 lg:w-1/3 w-full max-h-screen overflow-y-auto">
+    <div className="p-4 space-y-4 text-white lg:pr-10 mx-auto lg:mx-0 w-full max-h-screen overflow-y-auto">
       <div className="border-b border-gray-700 pb-2 mt-8">
         <h1 className="text-lg font-bold">
           What is happening Now - Live News Feed
@@ -54,7 +54,7 @@ export default function NewsBar({ setReady }) {
       {articles.map((article, index) => (
         <div
           key={index}
-          className="flex items-start space-x-3 p-3 bg-gray-900 rounded-lg"
+          className="flex items-start space-x-3 p-3 border-b border-gray-700 py-4"
         >
           <a href={article.url} target="_blank" rel="noopener noreferrer">
             <div className="flex-1">
