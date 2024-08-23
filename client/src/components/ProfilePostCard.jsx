@@ -107,7 +107,13 @@ export default function ProfilePostCard({ post, onOpenModal }) {
               <img
                 alt={post.caption}
                 className="object-cover w-full h-full"
-                src={`https://d3st0nkyboghj9.cloudfront.net/${post.fileName}`}
+                src={
+                  post.fileName.startsWith(
+                    "https://d3st0nkyboghj9.cloudfront.net/"
+                  )
+                    ? post.fileName
+                    : `https://d3st0nkyboghj9.cloudfront.net/${post.fileName}`
+                }
                 style={{ objectFit: "cover", lineHeight: "0" }}
               />
             ) : post.mediaType === "Video" ? (
@@ -117,7 +123,13 @@ export default function ProfilePostCard({ post, onOpenModal }) {
                   height: "550px",
                   borderBottom: "2px solid #1A202C", // Tailwind's text-gray-600 color
                 }}
-                src={`https://d3st0nkyboghj9.cloudfront.net/${post.fileName}`}
+                src={
+                  post.fileName.startsWith(
+                    "https://d3st0nkyboghj9.cloudfront.net/"
+                  )
+                    ? post.fileName
+                    : `https://d3st0nkyboghj9.cloudfront.net/${post.fileName}`
+                }
                 alt="Post"
                 controls // Ensure controls are enabled
               />

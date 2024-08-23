@@ -8,10 +8,10 @@ import NewPost from "./pages/NewPost";
 import Notification from "./pages/Notification";
 import ProfilePage from "./pages/Profile";
 import Register from "./pages/Register";
-
+import Search from "./pages/Search";
 function App() {
   return (
-    <div className="min-h-screen dark-bg-color-screen mainapp">
+    <div className="dark-bg-color-screen mainapp">
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
@@ -22,6 +22,8 @@ function App() {
             element={<ProtectedRoute element={<NewPost />} />}
           />
           <Route path="/profile" element={<ProfilePage></ProfilePage>}></Route>
+          <Route path="/search" element={<Search></Search>}></Route>
+
           <Route
             path="/notifications"
             element={<Notification></Notification>}
