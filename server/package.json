@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "dev": "npx nodemon server.js"
+    "dev": "npx nodemon server.js",
     "migrate" : "prisma migrate deploy"
   },
   "author": "",
