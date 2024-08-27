@@ -84,7 +84,7 @@ app.post("/api/posts/logout", auth, logoutUser);
 app.get("/api/posts/:id/userposts", auth, fetchUserPosts);
 
 //News page
-app.get("/api/posts/news", getNews);
+app.get("https://instas3verse.onrender.com/api/posts/news", getNews);
 
 const port = process.env.PORT || 3001;
 app.listen(port, () => {
