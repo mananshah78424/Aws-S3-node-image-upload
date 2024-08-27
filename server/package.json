@@ -4,6 +4,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "npx nodemon server.js"
+    "migrate" : "prisma migrate deploy"
   },
   "author": "",
   "license": "ISC",
